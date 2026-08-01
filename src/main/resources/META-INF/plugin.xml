@@ -1,0 +1,69 @@
+<idea-plugin>
+    <id>io.github.jeongdonghee.lombokbuilderlinker</id>
+    <name>Lombok Builder Linker</name>
+    <vendor email="weg9511@gmail.com" url="https://github.com/jeong-donghee">eehgnod</vendor>
+
+    <description><![CDATA[
+        Reconnect what Lombok <code>@Builder</code> disconnects.
+
+        <p>A linker resolves the symbol references a compiler leaves dangling. This plugin does the
+        same job inside the editor: it restores the references IntelliJ drops around
+        <code>@Builder</code>, so navigation, Find Usages, and Rename start working where they
+        silently did nothing before.</p>
+
+        <p><b>What breaks today.</b> Every claim below was measured across all 21 documented ways to
+        use <code>@Builder</code> — not inferred:</p>
+
+        <ul>
+          <li><b>Name strings point nowhere.</b> <code>builderMethodName</code>,
+              <code>buildMethodName</code>, <code>builderClassName</code>, <code>setterPrefix</code>,
+              <code>@Builder.ObtainVia(method)</code> and <code>@Builder.ObtainVia(field)</code> —
+              all six carry no reference. Ctrl+Click reports "Cannot find declaration to go to".</li>
+          <li><b><code>ObtainVia</code> breaks code silently.</b> It names a method you wrote by
+              hand, so the IDE shows that method as unused: Rename leaves the string stale and Safe
+              Delete removes it without warning. Nothing fails until <code>toBuilder()</code> runs.
+              This plugin makes the string a real reference, so both refactorings see it.</li>
+          <li><b>Usages of the annotated constructor or method come back empty.</b> The only caller
+              is the generated <code>build()</code>, which has no source, so Find Usages finds
+              nothing and Code Vision shows "no usages" — even with call sites right there.</li>
+          <li><b>The declaration goes grey.</b> A constructor or method carrying
+              <code>@Builder</code> is reported as never used.</li>
+        </ul>
+
+        <p><b>Placement decides everything.</b> Put <code>@Builder</code> on a class and all of this
+        works. Put it on a constructor — which the Lombok docs recommend once you have written a
+        constructor yourself — or on a static or instance method, and every link above breaks.
+        This plugin closes that gap without touching the class-level case, which already works.</p>
+
+        <p>Works in IntelliJ IDEA Community and Ultimate. It reads members the bundled Lombok
+        support already generates and adds references to them, so there is no dependency on Lombok
+        internals; with Lombok support disabled it quietly does nothing.</p>
+
+        <p><a href="https://github.com/jeong-donghee/lombok-builder-linker">Source code and issue tracker on GitHub</a></p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+        <ul>
+          <li><b>1.0.0</b> — Initial release. References for all six <code>@Builder</code> name
+              strings (<code>builderMethodName</code>, <code>buildMethodName</code>,
+              <code>builderClassName</code>, <code>setterPrefix</code>, and both
+              <code>@Builder.ObtainVia</code> forms), so Ctrl+Click, Find Usages, Rename and Safe
+              Delete all work on them. Usages of a constructor or method carrying
+              <code>@Builder</code> now include the builder call sites, and such declarations are
+              no longer reported as unused.</li>
+        </ul>
+    ]]></change-notes>
+
+    <!-- 플랫폼 코어 + 자바 지원(PSI). Lombok 번들 플러그인에는 의존하지 않는다 —
+         Lombok 이 PsiAugmentProvider 로 만들어 둔 멤버를 표준 PSI 로 조회만 한다. -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- @Builder / @Builder.ObtainVia 의 이름 문자열에 참조를 심는다.
+             참조 하나로 이동·Find Usages·Rename·Safe Delete 가 동시에 살아난다. -->
+        <psi.referenceContributor
+            language="JAVA"
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.reference.BuilderNameReferenceContributor"/>
+    </extensions>
+</idea-plugin>

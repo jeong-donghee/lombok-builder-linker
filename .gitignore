@@ -1,0 +1,14 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ Platform Gradle Plugin 작업 디렉터리 (runIde 샌드박스 / 캐시 / 다운로드된 IDE)
+.intellijPlatform/
+
+# IntelliJ project files (플러그인 개발 프로젝트 자체를 IDE로 열 때 생기는 것들)
+.idea/
+*.iml
+out/
+
+# Gradle wrapper jar 은 커밋해야 한다 (없으면 ./gradlew 가 안 돎)
+!gradle/wrapper/gradle-wrapper.jar
