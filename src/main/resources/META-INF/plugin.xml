@@ -65,5 +65,20 @@
         <psi.referenceContributor
             language="JAVA"
             implementation="io.github.jeongdonghee.lombokbuilderlinker.reference.BuilderNameReferenceContributor"/>
+
+        <!-- @Builder 가 붙은 생성자·메서드, 그리고 @Builder.ObtainVia 가 이름으로 가리키는 멤버를
+             unused 로 회색 처리하지 않게 막는다. -->
+        <implicitUsageProvider
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderImplicitUsageProvider"/>
+
+        <!-- 그 선언을 찾을 때 빌더 진입점의 호출부를 사용처로 함께 보고한다.
+             두 경로에 모두 등록해야 한다 — 실측으로 확인한 바 서로의 기여를 가져가지 않는다.
+               · methodReferencesSearch : 자바의 실제 Find Usages 가 쓰는 경로
+               · referencesSearch       : ReferencesSearch API 를 직접 부르는 경로
+             독립이므로 같은 호출부가 두 번 보고되지는 않는다. -->
+        <methodReferencesSearch
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMethodReferencesSearcher"/>
+        <referencesSearch
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderReferencesSearcher"/>
     </extensions>
 </idea-plugin>
