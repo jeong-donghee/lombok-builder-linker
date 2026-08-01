@@ -1,0 +1,19 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="38" height="38" rx="9" fill="#3C3F41"/>
+
+  <!-- 끊어진 고리를 이어주는 링커 -->
+  <g transform="translate(20,11.5) scale(0.75) translate(-20,-20)">
+    <path d="M15.5 13.5 H11.5 a6.5 6.5 0 0 0 0 13 H15.5" stroke="#E53935" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M24.5 13.5 H28.5 a6.5 6.5 0 0 1 0 13 H24.5" stroke="#E53935" stroke-width="3.2" stroke-linecap="round"/>
+    <line x1="14" y1="20" x2="26" y2="20" stroke="#43A047" stroke-width="3.4" stroke-linecap="round"/>
+  </g>
+
+  <!-- 가운데에서 수직으로 내려오는 꼭지 -->
+  <line x1="20" y1="11.5" x2="20" y2="22.8" stroke="#43A047" stroke-width="2.55" stroke-linecap="round"/>
+
+  <!-- 꼭지 끝에서 시작하는 고추 -->
+  <path d="M20 22.6
+           C26.2 23.8 29.4 29.4 26.6 33.2
+           C23.4 37.5 14 37.2 8.2 34.1
+           C15.4 33.9 19.6 30.3 20 25 Z" fill="#E53935"/>
+</svg>
