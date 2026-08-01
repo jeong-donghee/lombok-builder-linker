@@ -44,13 +44,22 @@
 
     <change-notes><![CDATA[
         <ul>
-          <li><b>1.0.0</b> — Initial release. References for all six <code>@Builder</code> name
-              strings (<code>builderMethodName</code>, <code>buildMethodName</code>,
-              <code>builderClassName</code>, <code>setterPrefix</code>, and both
-              <code>@Builder.ObtainVia</code> forms), so Ctrl+Click, Find Usages, Rename and Safe
-              Delete all work on them. Usages of a constructor or method carrying
-              <code>@Builder</code> now include the builder call sites, and such declarations are
-              no longer reported as unused.</li>
+          <li><b>1.0.0</b> — First release.
+            <ul>
+              <li>All six <code>@Builder</code> name strings carry a reference —
+                  <code>builderMethodName</code>, <code>buildMethodName</code>,
+                  <code>builderClassName</code>, <code>setterPrefix</code> and both
+                  <code>@Builder.ObtainVia</code> forms. Safe Delete and Rename of a member named by
+                  <code>ObtainVia</code> now see the string instead of silently breaking it.</li>
+              <li>Ctrl+Click on a name string opens the IDE's own usages popup, listing the call
+                  sites of the member that string names.</li>
+              <li>Shift+F6 on a name string renames in place and updates every call site in one
+                  undoable step. Renaming <code>setterPrefix</code> rewrites each generated setter
+                  with its own name (<code>withName</code> &rarr; <code>setName</code>).</li>
+              <li>Usages of a constructor or method carrying <code>@Builder</code> now include the
+                  builder call sites, and such declarations are no longer reported as unused.</li>
+            </ul>
+          </li>
         </ul>
     ]]></change-notes>
 
@@ -94,5 +103,15 @@
              "No usages found" 로 비어 있다(실측). -->
         <searcher forClass="com.intellij.find.usages.api.UsageSearchParameters"
                   implementationClass="io.github.jeongdonghee.lombokbuilderlinker.symbol.BuilderMemberUsageSearcher"/>
+
+        <!-- ⇧F6 은 커스텀 처리기가 맡는다. Symbol API 로 옮기려 했으나 자바 파일에서는 기본 이름
+             변경 처리기가 캐럿을 먼저 가져가 "this element cannot be renamed" 로 끝난다 —
+             RenameableSymbol 구현과 rename.symbolRenameTargetFactory 등록 둘 다 실측에서 실패했다.
+             그 앞을 가로챌 수 있는 것은 RenameHandler 뿐이다.
+             편집은 대화상자가 아니라 편집기 안에서 바로 하는 in-place 다 — 라이브 템플릿으로 이름 구간
+             하나를 편집 가능하게 만들고, 편집이 끝나면 호출부까지 되돌릴 수 있는 명령 하나로 함께 고친다.
+             시작 자리는 애노테이션 문자열뿐이다 — 호출부에서는 Lombok 처리기와 자리가 겹친다. -->
+        <renameHandler
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.reference.BuilderNameRenameHandler"/>
     </extensions>
 </idea-plugin>
