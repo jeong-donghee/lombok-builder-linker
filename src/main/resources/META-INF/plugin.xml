@@ -80,5 +80,19 @@
             implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMethodReferencesSearcher"/>
         <referencesSearch
             implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderReferencesSearcher"/>
+
+        <!-- 이름 문자열은 "참조"가 아니라 <b>선언</b>이다 — 생성될 멤버의 이름을 여기서 정한다.
+             그렇게 알리면 ⌘+Click 이 IDE 기본 사용처 팝업이 된다(실측: GotoDeclarationOrUsageHandler2
+             의 판정이 SU). 후보 목록을 직접 띄우는 gotoDeclarationHandler 는 쓰지 않는다 —
+             미리보기·그룹핑까지 플랫폼이 더 잘 한다. -->
+        <psi.declarationProvider
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.symbol.BuilderNameDeclarationProvider"/>
+
+        <!-- 그 선언의 사용처를 실제로 찾아오는 검색기. 선언이라고 알리는 것과 사용처를 찾는 것은
+             서로 다른 일이다 — 팝업은 SearchService.searchParameters(UsageSearchParameters) 를 타고,
+             그 경로는 이 확장점에 등록된 검색기에게만 묻는다. 빠뜨리면 팝업이 뜨긴 하는데
+             "No usages found" 로 비어 있다(실측). -->
+        <searcher forClass="com.intellij.find.usages.api.UsageSearchParameters"
+                  implementationClass="io.github.jeongdonghee.lombokbuilderlinker.symbol.BuilderMemberUsageSearcher"/>
     </extensions>
 </idea-plugin>
