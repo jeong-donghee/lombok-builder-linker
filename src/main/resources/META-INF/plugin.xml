@@ -44,6 +44,11 @@
 
     <change-notes><![CDATA[
         <ul>
+          <li><b>1.0.1</b> — Fixed: usages of a <b>private</b> constructor carrying
+              <code>@Builder</code> were not found. Java narrows a private member's search scope to
+              its own class body, while the real call sites reach it from other files through the
+              generated entry method. Hiding the constructor so the builder is the only way to
+              construct the object is a common idiom, so this affected many real-world classes.</li>
           <li><b>1.0.0</b> — First release.
             <ul>
               <li>All six <code>@Builder</code> name strings carry a reference —
