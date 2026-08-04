@@ -85,6 +85,12 @@
                · methodReferencesSearch : 자바의 실제 Find Usages 가 쓰는 경로
                · referencesSearch       : ReferencesSearch API 를 직접 부르는 경로
              독립이므로 같은 호출부가 두 번 보고되지는 않는다. -->
+        <!-- private 생성자·메서드는 use scope 가 그 클래스 본문으로 좁혀진다. @Builder 가 붙으면
+             실제 호출부는 Lombok 이 만든 public 진입 메서드를 통해 다른 파일에 있으므로, 그만큼
+             범위를 넓혀 준다. 이게 없으면 아래 검색기들이 좁은 범위를 물려받아 0건으로 끝난다. -->
+        <useScopeEnlarger
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMemberUseScopeEnlarger"/>
+
         <methodReferencesSearch
             implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMethodReferencesSearcher"/>
         <referencesSearch
