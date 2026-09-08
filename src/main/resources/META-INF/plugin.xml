@@ -17,12 +17,20 @@
         <ul>
           <li><b>Name strings point nowhere.</b> <code>builderMethodName</code>,
               <code>buildMethodName</code>, <code>builderClassName</code>, <code>setterPrefix</code>,
-              <code>@Builder.ObtainVia(method)</code> and <code>@Builder.ObtainVia(field)</code> —
-              all six carry no reference. Ctrl+Click reports "Cannot find declaration to go to".</li>
+              <code>@Builder.ObtainVia(method)</code>, <code>@Builder.ObtainVia(field)</code> and
+              <code>@Singular("item")</code> carry no reference. Ctrl+Click reports "Cannot find
+              declaration to go to".</li>
+          <li><b>Parameters do not reach their setters.</b> A setter's origin is a field when
+              <code>@Builder</code> sits on the class, but a parameter when it sits on a constructor
+              or factory method. The Lombok plugin links fields only, so from a parameter Find
+              Usages is empty and Rename leaves the call sites behind — and they still compile,
+              because a setter with the new name is generated.</li>
           <li><b><code>ObtainVia</code> breaks code silently.</b> It names a method you wrote by
               hand, so the IDE shows that method as unused: Rename leaves the string stale and Safe
-              Delete removes it without warning. Nothing fails until <code>toBuilder()</code> runs.
-              This plugin makes the string a real reference, so both refactorings see it.</li>
+              Delete removes it without warning. Nothing checks the shape of what it points at
+              either — Lombok writes the call into the generated <code>toBuilder()</code>, so a
+              missing member or a wrong signature breaks a file that has no source. Either way,
+              nothing shows up until you build.</li>
           <li><b>Usages of the annotated constructor or method come back empty.</b> The only caller
               is the generated <code>build()</code>, which has no source, so Find Usages finds
               nothing and Code Vision shows "no usages" — even with call sites right there.</li>
@@ -44,6 +52,21 @@
 
     <change-notes><![CDATA[
         <ul>
+          <li><b>Unreleased</b>
+            <ul>
+              <li><code>@Singular("item")</code> is linked like the other name strings, and renaming
+                  it keeps the setter prefix (<code>withItem</code> &rarr; <code>withTask</code>).</li>
+              <li>Find Usages and Rename on a <b>parameter</b> of a <code>@Builder</code> constructor
+                  or factory method now reach the generated setter's call sites. Fields are left to
+                  the Lombok plugin, which already handles them.</li>
+              <li>New inspection: <code>@Builder.ObtainVia</code> whose target is missing or has a
+                  signature Lombok cannot call. Lombok checks the annotation's syntax but never the
+                  signature, and the call it breaks lives in generated code — so until now this
+                  only showed up as a build error.</li>
+              <li><code>@SuperBuilder</code> already worked, including across the inheritance
+                  chain; that is now documented and pinned by tests. No behaviour change.</li>
+            </ul>
+          </li>
           <li><b>1.0.1</b> — Fixed: usages of a <b>private</b> constructor carrying
               <code>@Builder</code> were not found. Java narrows a private member's search scope to
               its own class body, while the real call sites reach it from other files through the
