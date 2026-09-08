@@ -96,6 +96,13 @@
         <useScopeEnlarger
             implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMemberUseScopeEnlarger"/>
 
+        <!-- @Builder 가 생성자·정적 메서드에 붙으면 세터의 출처는 필드가 아니라 <b>파라미터</b>다.
+             Lombok 플러그인의 사용처 처리기(LombokFieldFindUsagesHandlerFactory)는 필드만 다루므로
+             파라미터 쪽은 끊겨 있다(2026-09-07 실측: 필드 1건, 파라미터 0건). 그 자리를 잇는다.
+             찾는 대상이 메서드가 아니라 파라미터라 methodReferencesSearch 는 타지 않는다. -->
+        <referencesSearch
+            implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderParameterReferencesSearcher"/>
+
         <methodReferencesSearch
             implementation="io.github.jeongdonghee.lombokbuilderlinker.usage.BuilderMethodReferencesSearcher"/>
         <referencesSearch
