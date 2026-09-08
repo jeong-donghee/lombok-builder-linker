@@ -27,13 +27,20 @@ go to"*, Find Usages 는 빈 결과, Rename 을 하면 문자열은 낡은 채�
 [Lombok 공식문서가 권하는 형태](https://projectlombok.org/features/Builder)다 — 직접 쓴 생성자가
 있으면 생성자에 붙이라고 되어 있다.
 
-거기에 더해 **이름 문자열 여섯 자리는 참조가 아예 없다** — `builderMethodName` ·
-`buildMethodName` · `builderClassName` · `setterPrefix` · `@Builder.ObtainVia(method)` ·
-`@Builder.ObtainVia(field)`.
+거기에 더해 **이름 문자열에는 참조가 아예 없다** — `builderMethodName` · `buildMethodName` ·
+`builderClassName` · `setterPrefix` · `@Builder.ObtainVia(method)` · `@Builder.ObtainVia(field)` ·
+`@Singular("item")`.
+
+같은 뿌리에서 나오는 구멍이 하나 더 있다. 세터의 **출처**는 클래스에 `@Builder` 가 붙으면
+필드지만, 생성자나 정적 팩터리에 붙으면 **파라미터**다. Lombok 플러그인은 필드만 이어 주므로,
+파라미터에서 Find Usages 를 하면 빈 결과가 나오고 이름을 바꿔도 호출부의 `.userName(...)` 은
+그대로 남는다. 그런데도 컴파일은 통과한다 — 새 이름의 세터가 새로 생성되기 때문이다.
 
 가장 위험한 것은 `ObtainVia` 다. 이 자리는 **직접 쓴** 메서드를 가리키는데, IDE 는 그 연결을 못 보고
 해당 메서드를 미사용으로 취급한다. 그래서 그 메서드를 Rename 하면 문자열은 없는 이름을 가리킨 채
-남고, Safe Delete 는 경고 없이 지운다. `toBuilder()` 가 실행되기 전까지 아무것도 안 터진다.
+남고, Safe Delete 는 경고 없이 지운다. 게다가 그 문자열이 가리키는 멤버의 **모양**을 검사하는 것도
+없다 — Lombok 은 그 호출을 생성된 `toBuilder()` 본문에 그대로 심으므로, 이름이 틀리거나 시그니처가
+어긋나면 소스에 없는 코드가 깨진다. 어느 쪽이든 빌드를 돌려야 드러난다.
 
 관련 JetBrains 이슈(모두 Open):
 [IDEA-293203](https://youtrack.jetbrains.com/issue/IDEA-293203) ·
@@ -44,7 +51,7 @@ go to"*, Find Usages 는 빈 결과, Rename 을 하면 문자열은 낡은 채�
 
 ## 기능
 
-- **이름 문자열이 진짜 참조가 된다.** 여섯 자리 전부. 이동·Find Usages·Rename·Safe Delete 는 같은
+- **이름 문자열이 진짜 참조가 된다.** 일곱 자리 전부. 이동·Find Usages·Rename·Safe Delete 는 같은
   기계를 쓰므로 참조 하나로 넷이 함께 살아난다. 특히 `ObtainVia` 가 가리키는 멤버가 더는 조용히
   지워지지 않는다.
 - **이름 문자열 ⌘+Click 은 IDE 기본 사용처 팝업을 띄운다** — 그 이름이 가리키는 멤버의 호출부가,
@@ -60,6 +67,17 @@ go to"*, Find Usages 는 빈 결과, Rename 을 하면 문자열은 낡은 채�
   `build()` 뿐이고 소스가 없다 — 그래서 호출부가 바로 옆에 있는데도 Find Usages 는 비었고 Code
   Vision 은 *"no usages"* 를 띄웠다. 이제 빌더 호출부가 그 선언의 사용처로 보고되고, 선언이
   미사용으로 회색 처리되지 않는다.
+- **`@Singular("item")` 의 이름도 잇는다.** 다른 이름 문자열과 같은 방식이다. 이름을 바꾸면 접두사를
+  지킨 채 따라온다 — `withItem` 은 `withTask` 가 되지, `task` 가 되지 않는다.
+- **`@Builder` 가 생성자·정적 메서드에 붙으면 그 파라미터를 세터와 잇는다.** 파라미터에서 Find
+  Usages 를 하면 `.userName(...)` 호출부가 나오고, 이름을 바꾸면 그 호출부도 접두사를 지킨 채
+  따라온다. 필드 쪽은 건드리지 않는다 — Lombok 플러그인이 이미 잇고 있어서, 이 플러그인까지
+  보고하면 사용처가 두 번 나온다.
+- **`@SuperBuilder` 도 같이 잇는다.** 상속 체인 너머까지 닿는다. 부모의 `setterPrefix` 를 바꾸면
+  **자식 빌더 체인 안에 있는** 부모 세터 호출까지 다시 쓴다.
+- **`@Builder.ObtainVia` 가 가리키는 멤버의 모양을 편집기에서 검사한다.** Lombok 은 `this.method()`
+  로, `isStatic = true` 면 `Type.method(this)` 로 부른다. 없는 멤버나 어긋난 시그니처는 빌드에서만
+  터진다 — 깨지는 그 코드가 소스에 없기 때문이다. 인스펙션이 그 시차를 없앤다.
 - **Lombok 내부에 의존하지 않는다.** IDE 에 번들된 Lombok 지원이 만들어 둔 멤버를 표준 PSI 로
   읽을 뿐이다. Community 와 Ultimate 모두에서 동작하고, Lombok 지원이 꺼져 있으면 조용히 아무것도
   하지 않는다.
@@ -128,8 +146,13 @@ public class Sample {
   `builderMethodName = SOME_CONSTANT` 는 추측하지 않고 그대로 둔다.
 - **목록 대신 바로 이동할 수 있다.** 사용처가 하나거나, 전부 한 줄에 있으면(빌더 체인에서 흔하다)
   IntelliJ 는 팝업 없이 그 자리로 간다. 플랫폼 기본 동작이며, ⌥F7 은 항상 전체 목록을 보여준다.
-- **`@Singular` · `@SuperBuilder` · `@Builder.Default` 는 손댈 것이 없다.** 이미 정상 동작하는 것을
-  실측으로 확인했고, 그래서 건드리지 않는다.
+- **`@Builder.Default` 와 값 없는 `@Singular` 는 손댈 것이 없다.** 이미 정상 동작하는 것을 실측으로
+  확인했고, 그래서 건드리지 않는다. 이름을 준 `@Singular("item")` 은 다르다 — 그쪽은 **대상이고**,
+  처음 실측이 값 없는 형태만 쟀던 것이다.
+- **`@SuperBuilder` 의 `buildMethodName` 은 한 클래스만 따로 바꿀 수 없다.** 자식 빌더의 build 가
+  부모 것을 오버라이드하므로 체인 전체가 같은 이름이어야 한다 — 이 플러그인의 한계가 아니라
+  `@SuperBuilder` 자체의 제약이다. `builderMethodName` 과 `setterPrefix` 는 클래스마다 제 이름을
+  가지므로 혼자 바꿔도 된다.
 
 ## 개발
 
