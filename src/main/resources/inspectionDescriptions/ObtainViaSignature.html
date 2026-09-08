@@ -1,0 +1,16 @@
+<html>
+<body>
+Reports <code>@Builder.ObtainVia</code> whose target does not match the call Lombok generates.
+<p>
+    Lombok writes the call directly into the generated <code>toBuilder()</code>:
+    <code>this.method()</code> with no arguments, or <code>Type.method(this)</code> when
+    <code>isStatic = true</code>. If the named member is missing or has the wrong signature, the
+    generated code does not compile &mdash; but that code has no source, so the editor stays silent
+    until you run a build.
+</p>
+<p>
+    Lombok itself only checks the syntax of the annotation (naming both <code>field</code> and
+    <code>method</code>, or <code>isStatic</code> without <code>method</code>), never the signature.
+</p>
+</body>
+</html>

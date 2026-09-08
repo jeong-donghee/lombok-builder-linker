@@ -129,6 +129,18 @@
              편집은 대화상자가 아니라 편집기 안에서 바로 하는 in-place 다 — 라이브 템플릿으로 이름 구간
              하나를 편집 가능하게 만들고, 편집이 끝나면 호출부까지 되돌릴 수 있는 명령 하나로 함께 고친다.
              시작 자리는 애노테이션 문자열뿐이다 — 호출부에서는 Lombok 처리기와 자리가 겹친다. -->
+        <!-- @Builder.ObtainVia 가 가리키는 멤버의 모양 검사. Lombok 은 그 호출을 toBuilder() 본문에
+             그대로 심으므로 모양이 안 맞으면 생성된 코드가 컴파일되지 않는다. 그 코드는 소스에 없어서
+             편집기는 빌드 전까지 조용하다 — 그 시차를 없앤다. -->
+        <localInspection
+            language="JAVA"
+            shortName="ObtainViaSignature"
+            displayName="@Builder.ObtainVia target does not match the generated call"
+            groupName="Lombok"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="io.github.jeongdonghee.lombokbuilderlinker.inspection.ObtainViaSignatureInspection"/>
+
         <renameHandler
             implementation="io.github.jeongdonghee.lombokbuilderlinker.reference.BuilderNameRenameHandler"/>
     </extensions>
