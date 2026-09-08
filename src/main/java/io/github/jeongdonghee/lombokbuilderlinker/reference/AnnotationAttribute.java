@@ -4,6 +4,7 @@ import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiLiteralExpression;
 import com.intellij.psi.PsiNameValuePair;
+import io.github.jeongdonghee.lombokbuilderlinker.model.LombokAnnotations;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,11 +30,9 @@ public record AnnotationAttribute(@NotNull PsiAnnotation annotation,
         if (!(literal.getParent() instanceof PsiNameValuePair pair)) {
             return null;
         }
-        String name = pair.getName();
-        if (name == null) {
-            // @Foo("x") 같은 단일값 형태. 우리가 다루는 속성은 모두 이름을 명시하므로 대상이 아니다.
-            return null;
-        }
+        // @Foo("x") 처럼 이름 없이 쓴 단일값 형태는 자바 규칙상 value 속성이다.
+        // @Singular("item") 이 실제로 그렇게 쓰인다.
+        String name = pair.getName() == null ? LombokAnnotations.ATTR_VALUE : pair.getName();
         PsiElement parameterList = pair.getParent();
         if (parameterList == null || !(parameterList.getParent() instanceof PsiAnnotation annotation)) {
             return null;

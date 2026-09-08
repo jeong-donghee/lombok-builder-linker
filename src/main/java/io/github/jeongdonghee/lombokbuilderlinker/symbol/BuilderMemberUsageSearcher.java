@@ -67,7 +67,8 @@ public final class BuilderMemberUsageSearcher implements UsageSearcher {
                                                      @NotNull BuilderMemberSymbol symbol) {
         String name = symbol.memberName();
         return switch (symbol.kind()) {
-            case BUILDER_METHOD, BUILD_METHOD -> List.of((PsiElement[]) host.findMethodsByName(name, false));
+            case BUILDER_METHOD, BUILD_METHOD, SINGULAR_METHOD ->
+                List.of((PsiElement[]) host.findMethodsByName(name, false));
             case BUILDER_CLASS -> {
                 PsiClass found = host.findInnerClassByName(name, false);
                 yield found == null ? List.of() : List.of(found);

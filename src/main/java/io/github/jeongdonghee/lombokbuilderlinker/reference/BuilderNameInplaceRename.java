@@ -98,7 +98,9 @@ final class BuilderNameInplaceRename {
         List<BuilderNameRename.CapturedCallSite> callSites = new ArrayList<>();
         for (BuilderNameRename.CallSite callSite : callSiteElements) {
             callSites.add(new BuilderNameRename.CapturedCallSite(
-                pointers.createSmartPsiElementPointer(callSite.element()), callSite.suffix()));
+                pointers.createSmartPsiElementPointer(callSite.element()),
+                callSite.prefix(),
+                callSite.suffix()));
         }
         int editStart = editRange.getStartOffset();
         Expression initialValue = new ConstantExpression(currentName);

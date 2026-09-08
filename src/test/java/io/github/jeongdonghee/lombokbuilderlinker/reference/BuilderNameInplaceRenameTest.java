@@ -161,7 +161,9 @@ public class BuilderNameInplaceRenameTest extends InplaceRenameTestCase {
         SmartPointerManager pointers = SmartPointerManager.getInstance(getProject());
         for (BuilderNameRename.CallSite callSite : BuilderNameRename.callSites(literal)) {
             captured.add(new BuilderNameRename.CapturedCallSite(
-                pointers.createSmartPsiElementPointer(callSite.element()), callSite.suffix()));
+                pointers.createSmartPsiElementPointer(callSite.element()),
+                callSite.prefix(),
+                callSite.suffix()));
         }
         assertEquals("편집 전에는 호출부를 찾을 수 있어야 한다", 1, captured.size());
 

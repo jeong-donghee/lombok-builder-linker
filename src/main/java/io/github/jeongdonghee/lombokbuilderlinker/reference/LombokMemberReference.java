@@ -50,6 +50,8 @@ final class LombokMemberReference extends PsiReferenceBase.Poly<PsiLiteralExpres
         BUILDER_CLASS,
         /** {@code setterPrefix} — 접두사 하나가 생성된 세터 여러 개에 대응한다(1:N). */
         SETTER_PREFIX,
+        /** {@code @Singular("item")} — 생성된 <b>단수 adder</b>. */
+        SINGULAR_METHOD,
         /** {@code @Builder.ObtainVia(method = ...)} — <b>직접 쓴</b> 메서드. */
         VIA_METHOD,
         /** {@code @Builder.ObtainVia(field = ...)} — <b>직접 쓴</b> 필드. */
@@ -72,7 +74,8 @@ final class LombokMemberReference extends PsiReferenceBase.Poly<PsiLiteralExpres
         return kind == Kind.BUILDER_METHOD
             || kind == Kind.BUILD_METHOD
             || kind == Kind.BUILDER_CLASS
-            || kind == Kind.SETTER_PREFIX;
+            || kind == Kind.SETTER_PREFIX
+            || kind == Kind.SINGULAR_METHOD;
     }
 
     LombokMemberReference(@NotNull PsiLiteralExpression element, @NotNull Kind kind) {
@@ -98,7 +101,7 @@ final class LombokMemberReference extends PsiReferenceBase.Poly<PsiLiteralExpres
             case VIA_METHOD -> viaMethods(attribute);
             case VIA_FIELD -> viaField(attribute);
             // 합성 멤버는 해석에 노출하지 않는다.
-            case BUILDER_METHOD, BUILD_METHOD, BUILDER_CLASS, SETTER_PREFIX -> List.of();
+            case BUILDER_METHOD, BUILD_METHOD, BUILDER_CLASS, SETTER_PREFIX, SINGULAR_METHOD -> List.of();
         };
         return PsiElementResolveResult.createResults(targets);
     }
