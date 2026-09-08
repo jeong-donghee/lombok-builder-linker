@@ -47,7 +47,10 @@ public final class LombokStubs {
         fixture.addFileToProject("lombok/experimental/SuperBuilder.java", """
             package lombok.experimental;
             import java.lang.annotation.*;
-            @Target({ElementType.TYPE, ElementType.CONSTRUCTOR})
+            // 진짜 @SuperBuilder 는 @Target(TYPE) 하나뿐이고 builderClassName 이 없다
+            // (lombok 1.18.46 의 SuperBuilder.java:49 · javap 확인). 스텁을 넓게 잡아 두면
+            // 실제로는 컴파일도 안 되는 코드를 픽스처로 쓰게 된다 — 그래서 그대로 맞춘다.
+            @Target(ElementType.TYPE)
             @Retention(RetentionPolicy.SOURCE)
             public @interface SuperBuilder {
                 String builderMethodName() default "builder";

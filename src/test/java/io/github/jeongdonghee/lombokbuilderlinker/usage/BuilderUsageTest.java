@@ -73,17 +73,20 @@ public class BuilderUsageTest extends LightJavaCodeInsightFixtureTestCase {
         assertTrue(provider.isImplicitUsage(sample.findMethodsByName("repeat", false)[0]));
     }
 
-    /** {@code @SuperBuilder} 를 생성자에 쓴 경우도 같다. */
-    public void testSuperBuilderConstructorIsImplicitlyUsed() {
+    /**
+     * {@code @SuperBuilder} 는 <b>클래스에만</b> 붙는다({@code @Target(TYPE)}). 그러니 여기서는
+     * 클래스에 붙은 경우와 똑같이 "회색 처리 대상 아님"이 정답이다.
+     *
+     * <p>예전에는 생성자에 붙인 픽스처로 검사했는데, 그건 스텁의 {@code @Target} 을 실제보다 넓게
+     * 잡아 둔 탓이었다 — 진짜 lombok 에서는 컴파일도 되지 않는 코드였다(2026-09-07 확인).
+     */
+    public void testSuperBuilderOnClassIsNotMarked() {
         PsiClass sample = configureClass("""
             import lombok.experimental.SuperBuilder;
-            class Sample {
-                private final String name;
-                @SuperBuilder
-                Sample(String name) { this.name = name; }
-            }
+            @SuperBuilder
+            class Sample { private String name; }
             """);
-        assertTrue(provider.isImplicitUsage(sample.getConstructors()[0]));
+        assertFalse("클래스는 대상이 아니다", provider.isImplicitUsage(sample));
     }
 
     /**
