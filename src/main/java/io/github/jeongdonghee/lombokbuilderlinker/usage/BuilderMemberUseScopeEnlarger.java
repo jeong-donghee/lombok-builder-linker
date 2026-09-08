@@ -2,6 +2,7 @@ package io.github.jeongdonghee.lombokbuilderlinker.usage;
 
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiParameter;
 import com.intellij.psi.search.SearchScope;
 import com.intellij.psi.search.UseScopeEnlarger;
 import io.github.jeongdonghee.lombokbuilderlinker.model.BuilderTarget;
@@ -9,7 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * {@code @Builder} 가 붙은 <b>private</b> 생성자·메서드의 검색 범위를 빌더 진입점만큼 넓힌다.
+ * {@code @Builder} 가 붙은 <b>private</b> 생성자·메서드의 검색 범위를 빌더 진입점만큼,
+ * 그리고 그 <b>파라미터</b>의 범위를 생성된 세터만큼 넓힌다.
  *
  * <p>왜 필요한가: 자바는 private 멤버의 use scope 를 <b>그 클래스 본문</b>으로 좁힌다
  * (실측: {@code LocalSearchScope: [PsiClass:PrivateCase]}). 클래스 밖에서는 부를 수 없으니
@@ -33,6 +35,12 @@ public final class BuilderMemberUseScopeEnlarger extends UseScopeEnlarger {
 
     @Override
     public @Nullable SearchScope getAdditionalUseScope(@NotNull PsiElement element) {
+        if (element instanceof PsiParameter parameter) {
+            // 파라미터는 use scope 가 그 메서드 본문이다 — 세터 호출부는 다른 파일에 있으므로
+            // 생성된 세터만큼 넓혀 준다. 넓히지 않으면 아래 검색기가 0건으로 끝난다(private 생성자와 같은 함정).
+            PsiMethod setter = BuilderSetterCallSites.setterFor(parameter);
+            return setter == null ? null : setter.getUseScope();
+        }
         if (!(element instanceof PsiMethod method)) {
             return null;
         }
