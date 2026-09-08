@@ -52,7 +52,7 @@
 
     <change-notes><![CDATA[
         <ul>
-          <li><b>Unreleased</b>
+          <li><b>1.1.0</b>
             <ul>
               <li><code>@Singular("item")</code> is linked like the other name strings, and renaming
                   it keeps the setter prefix (<code>withItem</code> &rarr; <code>withTask</code>).</li>
