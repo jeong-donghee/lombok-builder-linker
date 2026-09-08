@@ -66,6 +66,10 @@ public final class BuilderNameReferenceContributor extends PsiReferenceContribut
                     default -> null;
                 };
             }
+            if (LombokAnnotations.isSingularAnnotation(qualifiedName)
+                && LombokAnnotations.ATTR_VALUE.equals(attributeName)) {
+                return LombokMemberReference.Kind.SINGULAR_METHOD;
+            }
             if (LombokAnnotations.OBTAIN_VIA.equals(qualifiedName)) {
                 return switch (attributeName) {
                     case LombokAnnotations.ATTR_VIA_METHOD -> LombokMemberReference.Kind.VIA_METHOD;

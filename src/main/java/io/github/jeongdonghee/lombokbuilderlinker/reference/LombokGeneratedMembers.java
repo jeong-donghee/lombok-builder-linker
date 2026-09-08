@@ -35,8 +35,17 @@ final class LombokGeneratedMembers {
     static @NotNull List<PsiElement> of(@Nullable PsiAnnotation annotation,
                                         @NotNull String attributeName,
                                         @NotNull String name) {
+        if (annotation == null || name.isEmpty()) {
+            return List.of();
+        }
+        // @Singular 는 @Builder 가 아니다 — 담은 필드·파라미터를 거슬러 올라가 그쪽 빌더를 찾는다.
+        if (LombokAnnotations.isSingularAnnotation(LombokAnnotations.qualifiedName(annotation))) {
+            BuilderTarget owner = BuilderTarget.ofSingular(annotation);
+            PsiMethod singular = owner == null ? null : owner.findSingularMethod(name);
+            return singular == null ? List.of() : List.of(singular);
+        }
         BuilderTarget target = BuilderTarget.ofAnnotation(annotation);
-        if (target == null || name.isEmpty()) {
+        if (target == null) {
             return List.of();
         }
         return switch (attributeName) {

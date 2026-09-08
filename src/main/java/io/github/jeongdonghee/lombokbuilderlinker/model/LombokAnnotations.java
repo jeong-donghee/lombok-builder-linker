@@ -25,12 +25,19 @@ public final class LombokAnnotations {
     public static final String BUILDER = "lombok.Builder";
     public static final String SUPER_BUILDER = "lombok.experimental.SuperBuilder";
     public static final String OBTAIN_VIA = "lombok.Builder.ObtainVia";
+    public static final String SINGULAR = "lombok.Singular";
 
     /** {@code @Builder} 의 문자열 속성들. */
     public static final String ATTR_BUILDER_METHOD_NAME = "builderMethodName";
     public static final String ATTR_BUILD_METHOD_NAME = "buildMethodName";
     public static final String ATTR_BUILDER_CLASS_NAME = "builderClassName";
     public static final String ATTR_SETTER_PREFIX = "setterPrefix";
+
+    /**
+     * {@code @Singular("item")} 의 값 자리. 애노테이션의 단일값 형태라 소스에 이름이 안 적히지만
+     * 자바 규칙상 이 속성의 이름은 {@code value} 다.
+     */
+    public static final String ATTR_VALUE = "value";
 
     /** {@code @Builder.ObtainVia} 의 속성들 — 여기 적힌 이름은 <b>직접 쓴</b> 멤버를 가리킨다. */
     public static final String ATTR_VIA_METHOD = "method";
@@ -75,6 +82,21 @@ public final class LombokAnnotations {
         return BUILDER.equals(qualifiedName) || SUPER_BUILDER.equals(qualifiedName);
     }
 
+    public static boolean isSingularAnnotation(@Nullable String qualifiedName) {
+        return SINGULAR.equals(qualifiedName);
+    }
+
+    /**
+     * {@code 접두사 + 대문자로 시작하는 이름}. Lombok 이 접근자 이름을 만드는 규칙과 같다
+     * ({@code HandlerUtil.buildAccessorName} — 접두사가 비어 있으면 이름을 그대로 쓴다).
+     */
+    public static @NotNull String accessorName(@NotNull String prefix, @NotNull String name) {
+        if (prefix.isEmpty() || name.isEmpty()) {
+            return name.isEmpty() ? prefix : name;
+        }
+        return prefix + Character.toUpperCase(name.charAt(0)) + name.substring(1);
+    }
+
     /**
      * <b>직접 적어둔</b> 문자열 속성 값. 기본값은 여기서 채우지 않는다 — 적었는지 여부 자체가
      * 의미를 갖는 속성({@code builderMethodName = ""})이 있어 호출부에서 구분해야 한다.
@@ -101,7 +123,7 @@ public final class LombokAnnotations {
         PsiAnnotation annotation = PsiTreeUtil.getParentOfType(element, PsiAnnotation.class, false);
         while (annotation != null) {
             String fqn = qualifiedName(annotation);
-            if (isBuilderAnnotation(fqn) || OBTAIN_VIA.equals(fqn)) {
+            if (isBuilderAnnotation(fqn) || OBTAIN_VIA.equals(fqn) || isSingularAnnotation(fqn)) {
                 return true;
             }
             annotation = PsiTreeUtil.getParentOfType(annotation, PsiAnnotation.class, true);

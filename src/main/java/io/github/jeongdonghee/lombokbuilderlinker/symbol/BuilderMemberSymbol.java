@@ -5,6 +5,7 @@ import com.intellij.find.usages.symbol.SearchTargetSymbol;
 import com.intellij.model.Pointer;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiMethod;
 import io.github.jeongdonghee.lombokbuilderlinker.model.BuilderTarget;
 import io.github.jeongdonghee.lombokbuilderlinker.model.LombokAnnotations;
 import io.github.jeongdonghee.lombokbuilderlinker.reference.AnnotationAttribute;
@@ -42,7 +43,15 @@ public final class BuilderMemberSymbol implements SearchTargetSymbol {
          * 호출부에 적히는 이름은 {@code withName} · {@code withCount} 다. 그래서 사용처는
          * {@code BuilderMemberUsageSearcher} 가 세터를 하나씩 찾아 모은다.
          */
-        SETTER_PREFIX
+        SETTER_PREFIX,
+        /**
+         * {@code @Singular("item")} — 생성된 <b>단수 adder</b>.
+         *
+         * <p>{@link #memberName()} 은 문자열에 적힌 값이 아니라 <b>실제로 생성된 메서드 이름</b>이다.
+         * 접두사가 있으면 둘이 다르다({@code setterPrefix = "with"} + {@code @Singular("item")}
+         * &rarr; {@code withItem}). 사용처를 찾을 때 필요한 것은 호출부에 적히는 이름 쪽이다.
+         */
+        SINGULAR_METHOD
     }
 
     private final String hostClassName;
@@ -67,12 +76,14 @@ public final class BuilderMemberSymbol implements SearchTargetSymbol {
         if (kind == null) {
             return null;
         }
-        BuilderTarget target = BuilderTarget.ofAnnotation(attribute.annotation());
+        BuilderTarget target = kind == Kind.SINGULAR_METHOD
+            ? BuilderTarget.ofSingular(attribute.annotation())
+            : BuilderTarget.ofAnnotation(attribute.annotation());
         if (target == null) {
             return null;
         }
-        // build 메서드와 세터는 빌더 클래스 안에 생긴다. 진입 메서드와 빌더 클래스는 바깥 클래스에 생긴다.
-        PsiClass host = kind == Kind.BUILD_METHOD || kind == Kind.SETTER_PREFIX
+        // build 메서드·세터·단수 adder 는 빌더 클래스 안에 생긴다. 진입 메서드와 빌더 클래스는 바깥에 생긴다.
+        PsiClass host = kind == Kind.BUILD_METHOD || kind == Kind.SETTER_PREFIX || kind == Kind.SINGULAR_METHOD
             ? target.findBuilderClass()
             : target.hostClass();
         String hostName = host == null ? null : host.getQualifiedName();
@@ -80,12 +91,25 @@ public final class BuilderMemberSymbol implements SearchTargetSymbol {
             // 익명·지역 클래스처럼 정규화된 이름이 없으면 신원을 정할 수 없다 — 손대지 않는다.
             return null;
         }
-        return new BuilderMemberSymbol(hostName, attribute.value(), kind);
+        String memberName = attribute.value();
+        if (kind == Kind.SINGULAR_METHOD) {
+            // 접두사가 붙으면 문자열과 실제 메서드 이름이 다르다. 호출부에 적히는 쪽을 신원으로 삼는다.
+            PsiMethod singular = target.findSingularMethod(memberName);
+            if (singular == null) {
+                return null;
+            }
+            memberName = singular.getName();
+        }
+        return new BuilderMemberSymbol(hostName, memberName, kind);
     }
 
     private static @Nullable Kind kindOf(@NotNull AnnotationAttribute attribute) {
         PsiAnnotation annotation = attribute.annotation();
-        if (!LombokAnnotations.isBuilderAnnotation(LombokAnnotations.qualifiedName(annotation))) {
+        String qualifiedName = LombokAnnotations.qualifiedName(annotation);
+        if (LombokAnnotations.isSingularAnnotation(qualifiedName)) {
+            return LombokAnnotations.ATTR_VALUE.equals(attribute.attributeName()) ? Kind.SINGULAR_METHOD : null;
+        }
+        if (!LombokAnnotations.isBuilderAnnotation(qualifiedName)) {
             return null;
         }
         return switch (attribute.attributeName()) {

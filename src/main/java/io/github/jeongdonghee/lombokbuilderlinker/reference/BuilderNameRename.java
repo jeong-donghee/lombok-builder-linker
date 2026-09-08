@@ -62,12 +62,26 @@ final class BuilderNameRename {
     /**
      * 고쳐야 할 호출부 하나.
      *
+     * <p>문자열에 적힌 값과 호출부에 적힌 이름이 늘 같지는 않다. 그래서 <b>바뀌지 않는 앞뒤</b>를
+     * 함께 들고 다니다가 최종 이름을 {@link #newName} 으로 조립한다.
+     *
      * @param element 호출부 요소
-     * @param suffix  새 이름에서 <b>바뀌지 않는 뒷부분</b>. 보통은 빈 문자열이고,
-     *                {@code setterPrefix} 일 때만 {@code Name} · {@code Count} 처럼 값이 있다.
-     *                최종 이름은 {@code 새로 친 값 + suffix} 다.
+     * @param prefix  이름 <b>앞</b>에 붙는, 문자열이 정하지 않는 부분. {@code @Singular("item")} 이
+     *                {@code setterPrefix = "with"} 아래 있으면 {@code with} 다({@code withItem}).
+     * @param suffix  이름 <b>뒤</b>에 붙는 부분. {@code setterPrefix} 일 때만 값이 있다
+     *                ({@code with} 가 만든 {@code withName} &rarr; {@code Name}).
      */
-    record CallSite(@NotNull PsiElement element, @NotNull String suffix) {}
+    record CallSite(@NotNull PsiElement element, @NotNull String prefix, @NotNull String suffix) {}
+
+    /**
+     * 새로 친 값으로 그 자리의 최종 이름을 만든다.
+     *
+     * <p>앞에 붙는 부분이 있으면 Lombok 의 접근자 이름 규칙대로 뒤를 대문자로 올린다
+     * ({@code with} + {@code task} &rarr; {@code withTask}).
+     */
+    static @NotNull String newName(@NotNull String prefix, @NotNull String base, @NotNull String suffix) {
+        return LombokAnnotations.accessorName(prefix, base) + suffix;
+    }
 
     /** 현재 이름. 인라인 편집의 초기값으로 쓴다. */
     static @Nullable String currentName(@Nullable PsiLiteralExpression literal) {
@@ -100,7 +114,7 @@ final class BuilderNameRename {
             if (element == null || !element.isValid()) {
                 continue; // 편집 중 사라진 자리는 건너뛴다.
             }
-            String newName = newBaseName + callSite.suffix();
+            String newName = newName(callSite.prefix(), newBaseName, callSite.suffix());
             for (PsiReference reference : element.getReferences()) {
                 reference.handleElementRename(newName);
             }
@@ -108,29 +122,36 @@ final class BuilderNameRename {
     }
 
     /** 편집을 시작하기 전에 붙잡아 둔 호출부. */
-    record CapturedCallSite(@NotNull SmartPsiElementPointer<?> pointer, @NotNull String suffix) {}
+    record CapturedCallSite(@NotNull SmartPsiElementPointer<?> pointer,
+                            @NotNull String prefix,
+                            @NotNull String suffix) {}
 
     private static List<CallSite> collectCallSites(@NotNull PsiAnnotation annotation,
                                                    @NotNull String attributeName,
                                                    @NotNull String name) {
         GlobalSearchScope scope = GlobalSearchScope.projectScope(annotation.getProject());
         Set<PsiReference> found = new LinkedHashSet<>();
+        Map<PsiReference, String> prefixes = new LinkedHashMap<>();
         Map<PsiReference, String> suffixes = new LinkedHashMap<>();
 
         // 합성 멤버는 참조 해석으로 노출하지 않으므로 전용 조회를 쓴다(LombokMemberReference 주석 참고).
         for (PsiElement generated : LombokGeneratedMembers.of(annotation, attributeName, name)) {
             String suffix = suffixOf(generated, name);
+            String prefix = prefixOf(generated, name);
             ReferencesSearch.search(generated, scope, false).forEach(candidate -> {
                 // 이름을 정하는 자리(애노테이션 문자열)는 호출부가 아니다 — 그쪽은 따로 고친다.
                 if (!LombokAnnotations.isInsideLombokAnnotation(candidate.getElement())) {
                     found.add(candidate);
+                    prefixes.put(candidate, prefix);
                     suffixes.put(candidate, suffix);
                 }
                 return true;
             });
         }
         return found.stream()
-            .map(reference -> new CallSite(reference.getElement(), suffixes.getOrDefault(reference, "")))
+            .map(reference -> new CallSite(reference.getElement(),
+                prefixes.getOrDefault(reference, ""),
+                suffixes.getOrDefault(reference, "")))
             .toList();
     }
 
@@ -139,13 +160,28 @@ final class BuilderNameRename {
      * ({@code with} 가 만든 {@code withName} → {@code Name}).
      */
     private static String suffixOf(@NotNull PsiElement generated, @NotNull String declaredValue) {
-        if (!(generated instanceof PsiNamedElement named)) {
-            return "";
-        }
-        String memberName = named.getName();
+        String memberName = nameOf(generated);
         if (memberName == null || memberName.equals(declaredValue) || !memberName.startsWith(declaredValue)) {
             return "";
         }
         return memberName.substring(declaredValue.length());
+    }
+
+    /**
+     * 멤버 이름에서 <b>문자열이 정하지 않는 앞부분</b>. {@code @Singular} 가 {@code setterPrefix} 아래
+     * 있을 때만 값이 있다({@code item} 이 만든 {@code withItem} &rarr; {@code with}).
+     */
+    private static String prefixOf(@NotNull PsiElement generated, @NotNull String declaredValue) {
+        String memberName = nameOf(generated);
+        if (memberName == null || declaredValue.isEmpty() || memberName.equals(declaredValue)) {
+            return "";
+        }
+        String capitalized = LombokAnnotations.accessorName("x", declaredValue).substring(1);
+        int at = memberName.length() - capitalized.length();
+        return at > 0 && memberName.endsWith(capitalized) ? memberName.substring(0, at) : "";
+    }
+
+    private static @Nullable String nameOf(@NotNull PsiElement generated) {
+        return generated instanceof PsiNamedElement named ? named.getName() : null;
     }
 }

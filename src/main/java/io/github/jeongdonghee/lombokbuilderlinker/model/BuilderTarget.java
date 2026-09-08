@@ -3,11 +3,15 @@ package io.github.jeongdonghee.lombokbuilderlinker.model;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiModifierListOwner;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtil;
+
+import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,6 +54,30 @@ public final class BuilderTarget {
         }
         PsiAnnotation annotation = LombokAnnotations.findBuilder(owner);
         return annotation == null ? null : from(owner, annotation);
+    }
+
+    /**
+     * {@code @Singular} 쪽에서 거꾸로 — 그 애노테이션이 어느 빌더에 속하는지 찾아 해석한다.
+     *
+     * <p>{@code @Singular} 는 두 자리에 붙는다. {@code @Builder} 가 <b>클래스</b>에 붙었으면 필드에,
+     * <b>생성자·메서드</b>에 붙었으면 그 파라미터에 붙는다. 그래서 담은 쪽을 거슬러 올라가 그쪽의
+     * {@code @Builder} 를 찾는다. 빌더가 없으면(예: 생성자에 {@code @Builder} 가 있는데 필드에
+     * {@code @Singular} 를 붙인 경우) Lombok 도 무시하므로 우리도 아무것도 하지 않는다.
+     */
+    public static @Nullable BuilderTarget ofSingular(@Nullable PsiAnnotation singular) {
+        if (singular == null
+            || !LombokAnnotations.isSingularAnnotation(LombokAnnotations.qualifiedName(singular))) {
+            return null;
+        }
+        PsiModifierListOwner owner = PsiTreeUtil.getParentOfType(singular, PsiModifierListOwner.class, true);
+        if (owner instanceof PsiField field) {
+            return of(field.getContainingClass());
+        }
+        if (owner instanceof PsiParameter parameter
+            && parameter.getDeclarationScope() instanceof PsiMethod method) {
+            return of(method);
+        }
+        return null;
     }
 
     /** 애노테이션 쪽에서 거꾸로 — 그 애노테이션이 붙은 선언을 찾아 해석한다. */
@@ -124,6 +152,43 @@ public final class BuilderTarget {
     public @Nullable PsiClass findBuilderClass() {
         String name = builderClassName();
         return name == null ? null : hostClass.findInnerClassByName(name, false);
+    }
+
+    /** 직접 적어둔 {@code setterPrefix}. 안 적었으면 빈 문자열이다(= 접두사 없음). */
+    public @NotNull String setterPrefix() {
+        String declared = LombokAnnotations.declaredString(annotation, LombokAnnotations.ATTR_SETTER_PREFIX);
+        return declared == null ? LombokAnnotations.SUPPRESSED : declared;
+    }
+
+    /**
+     * {@code @Singular("item")} 이 이름 지은 <b>단수 adder</b>.
+     *
+     * <p>이름 규칙을 계산해서 단정하지 않고 <b>실제로 있는 것을 찾는다</b>. Lombok 은 접두사가 있으면
+     * {@code 접두사 + Item}, 없으면 {@code item} 으로 만드는데({@code JavacSingularsRecipes}), 그 규칙을
+     * 우리가 베껴 두면 Lombok 이 바뀔 때 조용히 어긋난다. 후보를 만들어 두고 빌더 클래스에 실제로 있는
+     * 쪽을 고르면 규칙이 바뀌어도 따라간다.
+     */
+    public @Nullable PsiMethod findSingularMethod(@NotNull String singularName) {
+        PsiClass builderClass = findBuilderClass();
+        if (builderClass == null || singularName.isEmpty()) {
+            return null;
+        }
+        for (String candidate : singularCandidates(singularName)) {
+            PsiMethod[] found = builderClass.findMethodsByName(candidate, false);
+            if (found.length > 0) {
+                return found[0];
+            }
+        }
+        return null;
+    }
+
+    /** 접두사가 있으면 접두사 붙은 이름을 먼저 본다. */
+    private List<String> singularCandidates(@NotNull String singularName) {
+        String prefix = setterPrefix();
+        if (prefix.isEmpty()) {
+            return List.of(singularName);
+        }
+        return List.of(LombokAnnotations.accessorName(prefix, singularName), singularName);
     }
 
     /** Lombok 이 만들어 둔 빌더 진입 메서드. */
